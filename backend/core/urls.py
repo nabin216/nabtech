@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('services.urls')),  # Keep original API path for backward compatibility
     path('api/blog/', include('blog.urls')),
+    path('api/contact/', include('contact.urls')),  # Add contact URLs
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
