@@ -28,8 +28,13 @@ ENV/
 env.bak/
 venv.bak/
 
+# Ignore frontend directory completely
+frontend/
+
 # Node
 node_modules/
+.cache/
+.npm
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -38,7 +43,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 .next
-.cache/
+*.swp
+*.swo
+*~
 
 # IDE
 .idea/
