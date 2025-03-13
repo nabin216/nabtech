@@ -11,53 +11,92 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        shell: bash
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
+    - name: Debug directory structure
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Repository root:"
+        ls -R
+
     - name: Install dependencies
       run: |
+        echo "Current location: $(pwd)"
+        ls -la
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install google-auth google-cloud-storage django-storages[google]
+      working-directory: ${{ github.workspace }}/backend
 
     - name: Collect static files
       run: python manage.py collectstatic --noinput
+      working-directory: ${{ github.workspace }}/backend
       env:
         DJANGO_SETTINGS_MODULE: core.settings
         DJANGO_DEBUG: "False"
-        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         ALLOWED_HOSTS: ".el.r.appspot.com"
         DB_NAME: ${{ secrets.DB_NAME }}
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         GS_BUCKET_NAME: ${{ secrets.GS_BUCKET_NAME }}
-        GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+        GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+        GCP_PRIVATE_KEY_ID: ${{ secrets.GCP_PRIVATE_KEY_ID }}
+        GCP_PRIVATE_KEY: ${{ secrets.GCP_PRIVATE_KEY }}
+        GCP_CLIENT_EMAIL: ${{ secrets.GCP_CLIENT_EMAIL }}
+        GCP_CLIENT_ID: ${{ secrets.GCP_CLIENT_ID }}
+        GCP_CLIENT_X509_CERT_URL: ${{ secrets.GCP_CLIENT_X509_CERT_URL }}
+        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 
     - name: Authenticate with Google Cloud
+      id: auth
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
-        project_id: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        create_credentials_file: true
+        export_environment_variables: true
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        install_components: 'app-engine-python'
+
+    - name: Verify Google Cloud Auth
+      run: |
+        gcloud auth list
+        gcloud config list project
+        gcloud info
+      working-directory: ${{ github.workspace }}/backend
 
     - name: Deploy to App Engine
       run: gcloud app deploy app.yaml --quiet
+      working-directory: ${{ github.workspace }}/backend
       env:
         DJANGO_SETTINGS_MODULE: core.settings
         DJANGO_DEBUG: "False"
-        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         ALLOWED_HOSTS: ".el.r.appspot.com"
         DB_NAME: ${{ secrets.DB_NAME }}
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         GS_BUCKET_NAME: ${{ secrets.GS_BUCKET_NAME }}
-        GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }} 
+        GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+        GCP_PRIVATE_KEY_ID: ${{ secrets.GCP_PRIVATE_KEY_ID }}
+        GCP_PRIVATE_KEY: ${{ secrets.GCP_PRIVATE_KEY }}
+        GCP_CLIENT_EMAIL: ${{ secrets.GCP_CLIENT_EMAIL }}
+        GCP_CLIENT_ID: ${{ secrets.GCP_CLIENT_ID }}
+        GCP_CLIENT_X509_CERT_URL: ${{ secrets.GCP_CLIENT_X509_CERT_URL }}
+        DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }} 
